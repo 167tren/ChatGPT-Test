@@ -1,0 +1,1455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Particle Bloom Simulator</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: "Inter", "Segoe UI", sans-serif;
+      --panel-bg: rgba(15, 18, 30, 0.85);
+      --panel-border: rgba(255, 255, 255, 0.08);
+      --panel-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+      --accent: #7f9cff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at 20% 20%, #0b0d1c, #020208);
+      overflow: hidden;
+      color: #f8faff;
+    }
+
+    canvas {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      touch-action: none;
+    }
+
+    .ui-panel {
+      position: fixed;
+      top: 1.5rem;
+      right: 1.5rem;
+      width: min(320px, calc(100vw - 3rem));
+      backdrop-filter: blur(16px);
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      box-shadow: var(--panel-shadow);
+      border-radius: 18px;
+      padding: 1.25rem 1.35rem 1.4rem;
+      display: grid;
+      gap: 1rem;
+      transition: transform 0.35s cubic-bezier(0.3, 0, 0.2, 1), opacity 0.35s ease;
+      z-index: 10;
+    }
+
+    .ui-panel.collapsed {
+      transform: translateY(-10px) scale(0.96);
+      opacity: 0.35;
+    }
+
+    .ui-panel.collapsed .controls {
+      display: none;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+
+    .panel-title {
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+
+    .collapse-btn {
+      appearance: none;
+      border: 1px solid transparent;
+      border-radius: 999px;
+      padding: 0.3rem 0.65rem;
+      background: rgba(127, 156, 255, 0.18);
+      color: #f0f4ff;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 600;
+      transition: background 0.2s ease, transform 0.2s ease, border 0.2s ease;
+    }
+
+    .collapse-btn:hover {
+      background: rgba(127, 156, 255, 0.28);
+    }
+
+    .collapse-btn:focus-visible {
+      outline: 3px solid rgba(127, 156, 255, 0.55);
+      outline-offset: 2px;
+    }
+
+    .controls {
+      display: grid;
+      gap: 0.9rem;
+    }
+
+    .control {
+      display: grid;
+      gap: 0.4rem;
+    }
+
+    label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: rgba(233, 239, 255, 0.9);
+    }
+
+    input[type="range"],
+    select,
+    input[type="color"],
+    button {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(18, 23, 40, 0.7);
+      color: #f0f4ff;
+      padding: 0.45rem 0.7rem;
+      font-size: 0.9rem;
+      transition: border 0.2s ease, background 0.2s ease, transform 0.15s ease;
+    }
+
+    input[type="range"] {
+      padding: 0;
+      height: 4px;
+      accent-color: var(--accent);
+    }
+
+    input[type="color"] {
+      height: 36px;
+      cursor: pointer;
+      padding: 0;
+      border-radius: 12px;
+    }
+
+    select {
+      cursor: pointer;
+    }
+
+    button {
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    button:hover,
+    select:hover {
+      border-color: rgba(127, 156, 255, 0.5);
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    button:focus-visible,
+    select:focus-visible,
+    input:focus-visible {
+      outline: 3px solid rgba(127, 156, 255, 0.55);
+      outline-offset: 2px;
+    }
+
+    .inline-control {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .inline-control label {
+      margin: 0;
+    }
+
+    .toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .toggle input[type="checkbox"] {
+      width: auto;
+      accent-color: var(--accent);
+    }
+
+    .trail-readout {
+      font-size: 0.75rem;
+      opacity: 0.75;
+      text-align: right;
+    }
+
+    .instructions {
+      font-size: 0.75rem;
+      line-height: 1.5;
+      color: rgba(225, 231, 255, 0.85);
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding-top: 0.7rem;
+    }
+
+    .instructions strong {
+      display: block;
+      margin-bottom: 0.25rem;
+      font-size: 0.78rem;
+      letter-spacing: 0.05em;
+      color: rgba(255, 255, 255, 0.92);
+    }
+
+    .ripple {
+      position: fixed;
+      width: 160px;
+      height: 160px;
+      margin: -80px 0 0 -80px;
+      border-radius: 50%;
+      pointer-events: none;
+      background: radial-gradient(circle, rgba(143, 169, 255, 0.35) 0%, rgba(143, 169, 255, 0) 70%);
+      transform: scale(0.3);
+      opacity: 0.4;
+      animation: ripple 0.6s ease-out forwards;
+      z-index: 5;
+    }
+
+    @keyframes ripple {
+      to {
+        transform: scale(1);
+        opacity: 0;
+      }
+    }
+
+    .run-panel {
+      position: fixed;
+      left: 1.5rem;
+      bottom: 1.5rem;
+      width: min(320px, calc(100vw - 3rem));
+      display: grid;
+      gap: 0.85rem;
+      padding: 1.1rem 1.25rem 1.3rem;
+      border-radius: 18px;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      box-shadow: var(--panel-shadow);
+      backdrop-filter: blur(16px);
+      z-index: 9;
+    }
+
+    .run-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+
+    .run-header h2 {
+      margin: 0;
+      font-size: 0.95rem;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: rgba(233, 239, 255, 0.92);
+    }
+
+    .run-panel button {
+      appearance: none;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      padding: 0.35rem 0.85rem;
+      background: rgba(127, 156, 255, 0.18);
+      color: #f0f4ff;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s ease, border 0.2s ease, transform 0.2s ease;
+    }
+
+    .run-panel button:hover {
+      background: rgba(127, 156, 255, 0.28);
+    }
+
+    .run-panel button:focus-visible {
+      outline: 3px solid rgba(127, 156, 255, 0.55);
+      outline-offset: 2px;
+    }
+
+    .run-stats {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      font-size: 0.78rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: rgba(215, 225, 255, 0.78);
+    }
+
+    .run-stats strong {
+      display: block;
+      font-size: 1.1rem;
+      letter-spacing: 0.04em;
+      color: #f8faff;
+    }
+
+    .run-progress {
+      position: relative;
+      height: 7px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+    }
+
+    .run-progress-fill {
+      position: absolute;
+      inset: 0;
+      width: 0%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, rgba(127, 156, 255, 0.8), rgba(115, 231, 255, 0.8));
+      transition: width 0.35s cubic-bezier(0.3, 0, 0.2, 1);
+    }
+
+    .run-collection {
+      display: grid;
+      gap: 0.4rem;
+    }
+
+    .run-collection h3 {
+      margin: 0;
+      font-size: 0.7rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(180, 195, 240, 0.8);
+    }
+
+    .run-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    .run-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.3rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      letter-spacing: 0.04em;
+      background: rgba(127, 156, 255, 0.12);
+      border: 1px solid rgba(127, 156, 255, 0.18);
+      color: rgba(233, 239, 255, 0.92);
+      box-shadow: inset 0 0 12px rgba(115, 187, 255, 0.2);
+    }
+
+    .run-tag.curse {
+      background: rgba(255, 127, 127, 0.14);
+      border-color: rgba(255, 127, 127, 0.28);
+      box-shadow: inset 0 0 12px rgba(255, 120, 120, 0.25);
+      color: rgba(255, 200, 200, 0.92);
+    }
+
+    .choice-backdrop {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(4, 6, 14, 0.72);
+      backdrop-filter: blur(22px);
+      z-index: 20;
+    }
+
+    .choice-backdrop[hidden] {
+      display: none;
+    }
+
+    .choice-modal {
+      width: min(540px, calc(100vw - 3rem));
+      background: rgba(12, 16, 28, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 20px;
+      padding: 1.5rem;
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.55);
+      display: grid;
+      gap: 1.1rem;
+      text-align: left;
+    }
+
+    .choice-modal h3 {
+      margin: 0;
+      font-size: 1.1rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .choice-modal p {
+      margin: 0;
+      font-size: 0.85rem;
+      color: rgba(215, 225, 255, 0.82);
+      line-height: 1.5;
+    }
+
+    .choice-grid {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .choice-option {
+      display: grid;
+      gap: 0.35rem;
+      padding: 0.9rem 1rem;
+      border-radius: 14px;
+      border: 1px solid rgba(127, 156, 255, 0.2);
+      background: rgba(28, 36, 66, 0.55);
+      color: #f6f8ff;
+      text-align: left;
+      cursor: pointer;
+      transition: transform 0.2s ease, border 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .choice-option strong {
+      font-size: 0.95rem;
+      letter-spacing: 0.04em;
+    }
+
+    .choice-option span {
+      font-size: 0.82rem;
+      color: rgba(220, 230, 255, 0.82);
+      line-height: 1.45;
+    }
+
+    .choice-option:hover,
+    .choice-option:focus-visible {
+      border-color: rgba(127, 156, 255, 0.45);
+      box-shadow: 0 18px 35px rgba(36, 52, 105, 0.45);
+      transform: translateY(-2px);
+      outline: none;
+    }
+
+    .choice-actions {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .choice-actions button {
+      width: auto;
+      padding-inline: 1.2rem;
+    }
+
+    @media (max-width: 720px) {
+      .ui-panel {
+        width: calc(100vw - 2rem);
+        right: 1rem;
+        left: 1rem;
+        margin: 0 auto;
+      }
+
+      .run-panel {
+        width: calc(100vw - 2rem);
+        left: 1rem;
+        right: 1rem;
+        bottom: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas
+    id="scene"
+    role="presentation"
+    tabindex="0"
+    aria-label="Interactive particle playground"
+    aria-describedby="playTips"
+  ></canvas>
+  <section class="ui-panel" id="panel">
+    <div class="panel-header">
+      <span class="panel-title">Particle Bloom</span>
+      <button type="button" class="collapse-btn" id="collapse">Collapse</button>
+    </div>
+    <div class="controls" id="controls">
+      <div class="control">
+        <label for="count">Particles Per Burst</label>
+        <input id="count" type="range" min="10" max="800" value="300" />
+      </div>
+      <div class="control">
+        <label for="gravity">Gravity</label>
+        <input id="gravity" type="range" min="0" max="2" step="0.01" value="0.4" />
+      </div>
+      <div class="control">
+        <label for="drag">Drag</label>
+        <input id="drag" type="range" min="0" max="0.1" step="0.005" value="0.02" />
+      </div>
+      <div class="control">
+        <label for="power">Explosion Power</label>
+        <input id="power" type="range" min="1" max="12" step="0.1" value="6" />
+      </div>
+      <div class="control">
+        <label for="trail">Trail Intensity</label>
+        <input id="trail" type="range" min="0" max="1" step="0.01" value="0.15" />
+        <div class="trail-readout" id="trailReadout">Fade Alpha: 0.15</div>
+      </div>
+      <div class="control">
+        <label for="mode">Color Mode</label>
+        <select id="mode">
+          <option value="rainbow">Rainbow</option>
+          <option value="fire">Fire</option>
+          <option value="frost">Frost</option>
+          <option value="neon">Neon</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+      <div class="control" id="customColorControl" hidden>
+        <label for="customColor">Custom Color</label>
+        <input id="customColor" type="color" value="#ff5ef0" />
+      </div>
+      <div class="control toggle">
+        <input id="continuous" type="checkbox" />
+        <label for="continuous">Continuous Emitter</label>
+      </div>
+      <button type="button" id="clear">Clear Particles</button>
+      <div class="instructions" id="playTips">
+        <strong>Keyboard play:</strong>
+        Focus the canvas, use the arrow keys to move the target, press Enter to
+        burst, Space to toggle the continuous emitter, M to cycle color modes,
+        and C to clear the screen.
+      </div>
+    </div>
+  </section>
+  <section class="run-panel" id="runPanel" aria-live="polite">
+    <div class="run-header">
+      <h2>Echo Run</h2>
+      <button type="button" id="newRun">Start New Run</button>
+    </div>
+    <div class="run-stats">
+      <div>
+        <span>Cycle</span>
+        <strong id="runLevel">1</strong>
+      </div>
+      <div>
+        <span>Quanta</span>
+        <strong id="runShards">0 / 0</strong>
+      </div>
+    </div>
+    <div
+      class="run-progress"
+      role="progressbar"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow="0"
+      id="runProgressBar"
+    >
+      <div class="run-progress-fill" id="runProgressFill"></div>
+    </div>
+    <div class="run-collection" id="relicContainer">
+      <h3>Resonances</h3>
+      <div class="run-tags" id="runRelics" aria-live="polite"></div>
+    </div>
+    <div class="run-collection" id="curseContainer" hidden>
+      <h3>Entropy</h3>
+      <div class="run-tags" id="runCurses" aria-live="polite"></div>
+    </div>
+  </section>
+  <div class="choice-backdrop" id="choiceBackdrop" hidden>
+    <div
+      class="choice-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="choiceTitle"
+      aria-describedby="choiceSubtitle"
+    >
+      <h3 id="choiceTitle">Choose an Anomaly</h3>
+      <p id="choiceSubtitle">Select a mutation to shape this cycle.</p>
+      <div class="choice-grid" id="choiceGrid"></div>
+      <div class="choice-actions">
+        <button type="button" id="choiceSkip">Skip</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    // --- State -----------------------------------------------------------------
+    const canvas = document.getElementById('scene');
+    const ctx = canvas.getContext('2d', { alpha: false });
+    const panel = document.getElementById('panel');
+    const collapseBtn = document.getElementById('collapse');
+    const trailReadout = document.getElementById('trailReadout');
+    const customColorControl = document.getElementById('customColorControl');
+    const runUi = {
+      panel: document.getElementById('runPanel'),
+      level: document.getElementById('runLevel'),
+      shards: document.getElementById('runShards'),
+      progressBar: document.getElementById('runProgressBar'),
+      progressFill: document.getElementById('runProgressFill'),
+      relics: document.getElementById('runRelics'),
+      curses: document.getElementById('runCurses'),
+      relicContainer: document.getElementById('relicContainer'),
+      curseContainer: document.getElementById('curseContainer'),
+      newRun: document.getElementById('newRun'),
+      choiceBackdrop: document.getElementById('choiceBackdrop'),
+      choiceGrid: document.getElementById('choiceGrid'),
+      choiceTitle: document.getElementById('choiceTitle'),
+      choiceSubtitle: document.getElementById('choiceSubtitle'),
+      choiceSkip: document.getElementById('choiceSkip'),
+    };
+
+    const inputs = {
+      count: document.getElementById('count'),
+      gravity: document.getElementById('gravity'),
+      drag: document.getElementById('drag'),
+      power: document.getElementById('power'),
+      trail: document.getElementById('trail'),
+      mode: document.getElementById('mode'),
+      customColor: document.getElementById('customColor'),
+      continuous: document.getElementById('continuous'),
+      clear: document.getElementById('clear'),
+    };
+
+    const state = {
+      particles: [],
+      pointer: { x: 0, y: 0, active: false, isDown: false, source: 'keyboard' },
+      keyboard: { x: 0, y: 0, step: 48 },
+      config: {
+        count: Number(inputs.count.value),
+        gravity: Number(inputs.gravity.value),
+        drag: Number(inputs.drag.value),
+        power: Number(inputs.power.value),
+        trail: Number(inputs.trail.value),
+        mode: inputs.mode.value,
+        customColor: inputs.customColor.value,
+        continuous: inputs.continuous.checked,
+      },
+      dpr: window.devicePixelRatio || 1,
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+      maxParticles: 15000,
+      background: { primary: '#0b0d1c', secondary: '#020208' },
+    };
+
+    const runState = {
+      active: false,
+      level: 1,
+      shards: 0,
+      goal: 220,
+      relics: [],
+      curses: [],
+      modifiers: createDefaultModifiers(),
+      offering: null,
+      history: new Set(),
+    };
+
+    const modeTraits = {
+      rainbow: () => ({
+        lifeMultiplier: 1,
+        dragBoost: 0,
+        gravityBoost: 0,
+        shadow: 25,
+        color: () => `hsl(${Math.random() * 360}, 85%, 62%)`,
+      }),
+      fire: () => ({
+        lifeMultiplier: 0.9,
+        dragBoost: 0.01,
+        gravityBoost: -0.18,
+        shadow: 30,
+        color: () => `hsl(${10 + Math.random() * 25}, 90%, ${55 + Math.random() * 10}%)`,
+        velocityAdjust: (vx, vy) => ({ vx, vy: vy - 1.2 }),
+      }),
+      frost: () => ({
+        lifeMultiplier: 1.35,
+        dragBoost: 0.05,
+        gravityBoost: -0.05,
+        shadow: 20,
+        color: () => `hsl(${180 + Math.random() * 40}, 70%, ${65 + Math.random() * 10}%)`,
+      }),
+      neon: () => ({
+        lifeMultiplier: 1.1,
+        dragBoost: 0.02,
+        gravityBoost: 0,
+        shadow: 40,
+        color: () => {
+          const palettes = [140, 200, 260, 320];
+          const hue = palettes[Math.floor(Math.random() * palettes.length)] + Math.random() * 20;
+          return `hsl(${hue}, 95%, 60%)`;
+        },
+      }),
+      custom: () => ({
+        lifeMultiplier: 1.1,
+        dragBoost: 0.015,
+        gravityBoost: 0,
+        shadow: 28,
+        color: () => state.config.customColor,
+      }),
+    };
+
+    const relicDeck = [
+      {
+        id: 'cascade',
+        name: 'Cascade Bloom',
+        description: 'Bursts spawn +30% more motes.',
+        apply: (run) => {
+          run.modifiers.count *= 1.3;
+        },
+      },
+      {
+        id: 'featherfall',
+        name: 'Featherfall Lattice',
+        description: 'Gravity eases by 0.22 and quanta gains +20%.',
+        apply: (run) => {
+          run.modifiers.gravityBoost -= 0.22;
+          run.modifiers.shardBonus *= 1.2;
+        },
+      },
+      {
+        id: 'aurora',
+        name: 'Aurora Core',
+        description: 'Glow +35% and particle size +12%.',
+        apply: (run) => {
+          run.modifiers.glow *= 1.35;
+          run.modifiers.size *= 1.12;
+        },
+      },
+      {
+        id: 'ionSpool',
+        name: 'Ion Spool',
+        description: 'Initial speed +25% but drag +0.007.',
+        apply: (run) => {
+          run.modifiers.power *= 1.25;
+          run.modifiers.dragBoost += 0.007;
+        },
+      },
+      {
+        id: 'echoBurst',
+        name: 'Echo Burst',
+        description: '20% chance to echo with 65% strength nearby.',
+        apply: (run) => {
+          run.modifiers.cascadeChance = Math.min(
+            0.6,
+            (run.modifiers.cascadeChance || 0) + 0.2,
+          );
+        },
+      },
+      {
+        id: 'chronoBloom',
+        name: 'Chrono Bloom',
+        description: 'Lifetime +40% and trails thicken slightly.',
+        apply: (run) => {
+          run.modifiers.life *= 1.4;
+          run.modifiers.trailBonus = clamp(run.modifiers.trailBonus + 0.04, -0.1, 0.3);
+        },
+      },
+      {
+        id: 'luminousTide',
+        name: 'Luminous Tide',
+        description: 'Particle size +30% but fade alpha -0.03.',
+        apply: (run) => {
+          run.modifiers.size *= 1.3;
+          run.modifiers.trailBonus = clamp(run.modifiers.trailBonus - 0.03, -0.2, 0.3);
+        },
+      },
+      {
+        id: 'quantumFountain',
+        name: 'Quantum Fountain',
+        description: 'Quanta rewards +60% for future cycles.',
+        apply: (run) => {
+          run.modifiers.shardBonus *= 1.6;
+        },
+      },
+      {
+        id: 'stormDrive',
+        name: 'Storm Drive',
+        description: 'Power +45% but gravity gains +0.18.',
+        apply: (run) => {
+          run.modifiers.power *= 1.45;
+          run.modifiers.gravityBoost += 0.18;
+        },
+      },
+    ];
+
+    const curseDeck = [
+      {
+        id: 'voidTax',
+        name: 'Void Tax',
+        description: 'Particle output -20%.',
+        apply: (run) => {
+          run.modifiers.count *= 0.8;
+        },
+      },
+      {
+        id: 'heavyAtmosphere',
+        name: 'Heavy Atmosphere',
+        description: 'Gravity +0.3 drags everything earthward.',
+        apply: (run) => {
+          run.modifiers.gravityBoost += 0.3;
+        },
+      },
+      {
+        id: 'timeRust',
+        name: 'Time Rust',
+        description: 'Lifespans crumble (-25%).',
+        apply: (run) => {
+          run.modifiers.life *= 0.75;
+        },
+      },
+      {
+        id: 'siphonedSpark',
+        name: 'Siphoned Spark',
+        description: 'Power -25% on every burst.',
+        apply: (run) => {
+          run.modifiers.power *= 0.75;
+        },
+      },
+      {
+        id: 'soddenAir',
+        name: 'Sodden Air',
+        description: 'Drag +0.03 and glow dims by 20%.',
+        apply: (run) => {
+          run.modifiers.dragBoost += 0.03;
+          run.modifiers.glow *= 0.8;
+        },
+      },
+      {
+        id: 'entropyVeil',
+        name: 'Entropy Veil',
+        description: 'Quanta trickles (-30%).',
+        apply: (run) => {
+          run.modifiers.shardBonus *= 0.7;
+        },
+      },
+    ];
+
+    function createDefaultModifiers() {
+      return {
+        count: 1,
+        power: 1,
+        life: 1,
+        size: 1,
+        glow: 1,
+        gravityBoost: 0,
+        dragBoost: 0,
+        trailBonus: 0,
+        shardBonus: 1,
+        cascadeChance: 0,
+      };
+    }
+
+    function startRun() {
+      closeChoice(true);
+      runState.active = true;
+      runState.level = 1;
+      runState.shards = 0;
+      runState.goal = 220;
+      runState.relics = [];
+      runState.curses = [];
+      runState.modifiers = createDefaultModifiers();
+      runState.offering = null;
+      runState.history = new Set();
+      state.particles.length = 0;
+      state.keyboard.step = 48;
+      updateRunPanel();
+      queueChoice('relic', {
+        title: 'Choose Your Opening Resonance',
+        subtitle: 'Select a boon to anchor this cycle. No skipping allowed.',
+        allowSkip: false,
+      });
+    }
+
+    function updateRunPanel() {
+      runUi.level.textContent = runState.level.toString();
+      runUi.shards.textContent = `${Math.floor(runState.shards)} / ${runState.goal}`;
+      const progress = clamp(runState.goal ? runState.shards / runState.goal : 0, 0, 1);
+      runUi.progressFill.style.width = `${(progress * 100).toFixed(1)}%`;
+      runUi.progressBar.setAttribute('aria-valuenow', Math.round(progress * 100));
+      runUi.progressBar.setAttribute(
+        'aria-valuetext',
+        `${Math.round(progress * 100)} percent to next cycle`,
+      );
+      renderRunTags(runUi.relics, runState.relics, '');
+      renderRunTags(runUi.curses, runState.curses, 'curse');
+      runUi.curseContainer.hidden = runState.curses.length === 0;
+      runUi.newRun.textContent = runState.active ? 'Restart Run' : 'Start New Run';
+      updateTrailReadout();
+    }
+
+    function renderRunTags(target, items, extraClass) {
+      target.innerHTML = '';
+      if (!items || !items.length) return;
+      for (const item of items) {
+        const tag = document.createElement('span');
+        tag.className = `run-tag${extraClass ? ` ${extraClass}` : ''}`;
+        tag.textContent = item.name;
+        tag.title = item.description;
+        tag.setAttribute('aria-label', `${item.name}: ${item.description}`);
+        target.appendChild(tag);
+      }
+    }
+
+    function awardShards(spawned, bonus = 0) {
+      if (!runState.active) return;
+      const gain = (spawned * 0.1 + bonus) * runState.modifiers.shardBonus;
+      runState.shards += gain;
+      let leveled = false;
+      while (runState.shards >= runState.goal) {
+        runState.shards -= runState.goal;
+        handleLevelUp();
+        leveled = true;
+      }
+      if (!leveled) {
+        updateRunPanel();
+      }
+    }
+
+    function handleLevelUp() {
+      runState.level += 1;
+      runState.goal = Math.round(runState.goal * 1.32 + 60);
+      updateRunPanel();
+      const isCurse = runState.level % 3 === 0;
+      queueChoice(isCurse ? 'curse' : 'relic', {
+        title: isCurse ? 'Endure an Entropy Surge' : 'Select a Fresh Resonance',
+        subtitle: isCurse
+          ? 'Entropy insists on a trade. Choose the curse you can weather.'
+          : 'Claim another boon to twist the bloom in your favor.',
+        allowSkip: !isCurse,
+      });
+    }
+
+    function queueChoice(type, details = {}) {
+      closeChoice(true);
+      const pool = type === 'curse' ? curseDeck : relicDeck;
+      let available = pool.filter((card) => {
+        if (type === 'curse') return true;
+        return !runState.relics.some((existing) => existing.id === card.id);
+      });
+      if (!available.length) {
+        available = pool.slice();
+      }
+      const count = Math.min(details.count ?? 3, available.length);
+      if (!count) return;
+      const options = sampleWithoutReplacement(available, count);
+      openChoice({
+        type,
+        options,
+        allowSkip: details.allowSkip ?? type !== 'curse',
+        title: details.title || (type === 'curse' ? 'Choose a Curse' : 'Choose an Anomaly'),
+        subtitle:
+          details.subtitle ||
+          (type === 'curse'
+            ? 'Entropy draws near. Select the least terrible outcome.'
+            : 'Every boon reshapes the bloom—choose wisely.'),
+      });
+    }
+
+    function openChoice(config) {
+      runState.offering = config;
+      runUi.choiceTitle.textContent = config.title;
+      runUi.choiceSubtitle.textContent = config.subtitle;
+      runUi.choiceGrid.innerHTML = '';
+      for (const option of config.options) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'choice-option';
+        button.dataset.id = option.id;
+        button.innerHTML = `<strong>${option.name}</strong><span>${option.description}</span>`;
+        button.addEventListener('click', () => resolveChoice(option.id));
+        runUi.choiceGrid.appendChild(button);
+      }
+      runUi.choiceSkip.hidden = !config.allowSkip;
+      runUi.choiceSkip.disabled = !config.allowSkip;
+      runUi.choiceBackdrop.hidden = false;
+      document.body.classList.add('choice-open');
+      requestAnimationFrame(() => {
+        const first = runUi.choiceGrid.querySelector('button');
+        if (first) first.focus();
+      });
+    }
+
+    function closeChoice(force = false) {
+      if (!runState.offering && !force) return;
+      runUi.choiceBackdrop.hidden = true;
+      document.body.classList.remove('choice-open');
+      runState.offering = null;
+      if (!force) {
+        updateRunPanel();
+      }
+    }
+
+    function resolveChoice(id) {
+      if (!runState.offering) return;
+      const card = runState.offering.options.find((opt) => opt.id === id);
+      if (!card) return;
+      applyCard(card, runState.offering.type);
+      runState.history.add(card.id);
+      closeChoice();
+    }
+
+    function applyCard(card, type) {
+      if (type === 'curse') {
+        runState.curses.push(card);
+      } else {
+        runState.relics.push(card);
+      }
+      card.apply(runState, state);
+    }
+
+    function sampleWithoutReplacement(list, count) {
+      const copy = list.slice();
+      const result = [];
+      for (let i = 0; i < count && copy.length; i++) {
+        const index = Math.floor(Math.random() * copy.length);
+        result.push(copy.splice(index, 1)[0]);
+      }
+      return result;
+    }
+
+    function updateTrailReadout() {
+      const base = state.config.trail;
+      const effective = getTrailAlpha();
+      if (Math.abs(effective - base) > 0.005) {
+        trailReadout.textContent = `Fade Alpha: ${base.toFixed(2)} → ${effective.toFixed(2)}`;
+      } else {
+        trailReadout.textContent = `Fade Alpha: ${base.toFixed(2)}`;
+      }
+    }
+
+    function getTrailAlpha() {
+      return clamp(state.config.trail + runState.modifiers.trailBonus, 0.02, 0.6);
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    // --- UI --------------------------------------------------------------------
+    function syncConfig() {
+      state.config.count = Number(inputs.count.value);
+      state.config.gravity = Number(inputs.gravity.value);
+      state.config.drag = Number(inputs.drag.value);
+      state.config.power = Number(inputs.power.value);
+      state.config.trail = Number(inputs.trail.value);
+      state.config.mode = inputs.mode.value;
+      state.config.customColor = inputs.customColor.value;
+      state.config.continuous = inputs.continuous.checked;
+      updateTrailReadout();
+      customColorControl.hidden = state.config.mode !== 'custom';
+      applyColorMode();
+      updateContinuousPointer();
+    }
+
+    inputs.count.addEventListener('input', syncConfig);
+    inputs.gravity.addEventListener('input', syncConfig);
+    inputs.drag.addEventListener('input', syncConfig);
+    inputs.power.addEventListener('input', syncConfig);
+    inputs.trail.addEventListener('input', syncConfig);
+    inputs.mode.addEventListener('change', syncConfig);
+    inputs.customColor.addEventListener('input', syncConfig);
+    inputs.continuous.addEventListener('change', syncConfig);
+    inputs.clear.addEventListener('click', () => state.particles.length = 0);
+    runUi.newRun.addEventListener('click', () => startRun());
+    runUi.choiceSkip.addEventListener('click', () => {
+      if (runState.offering && runState.offering.allowSkip) {
+        closeChoice();
+      }
+    });
+
+    collapseBtn.addEventListener('click', () => {
+      panel.classList.toggle('collapsed');
+      collapseBtn.textContent = panel.classList.contains('collapsed') ? 'Expand' : 'Collapse';
+    });
+
+    function updateContinuousPointer() {
+      if (state.config.continuous) {
+        if (state.pointer.source === 'keyboard' && !state.pointer.isDown) {
+          state.pointer.x = state.keyboard.x;
+          state.pointer.y = state.keyboard.y;
+        }
+        state.pointer.active = true;
+      } else if (!state.pointer.isDown) {
+        state.pointer.active = false;
+      }
+    }
+
+    function syncKeyboardPointer() {
+      state.pointer.source = 'keyboard';
+      state.pointer.x = state.keyboard.x;
+      state.pointer.y = state.keyboard.y;
+      updateContinuousPointer();
+    }
+
+    function centerKeyboardTarget() {
+      state.keyboard.x = state.viewport.width / 2;
+      state.keyboard.y = state.viewport.height / 2;
+      if (!state.pointer.isDown) {
+        syncKeyboardPointer();
+      }
+    }
+
+    function moveKeyboardTarget(dx, dy) {
+      state.keyboard.x = clamp(state.keyboard.x + dx, 0, state.viewport.width);
+      state.keyboard.y = clamp(state.keyboard.y + dy, 0, state.viewport.height);
+      syncKeyboardPointer();
+    }
+
+    function spawnKeyboardExplosion() {
+      syncKeyboardPointer();
+      spawnExplosion(state.keyboard.x, state.keyboard.y);
+      const rect = canvas.getBoundingClientRect();
+      spawnRipple(rect.left + state.keyboard.x, rect.top + state.keyboard.y);
+    }
+
+    function toggleContinuousEmitter(forceValue) {
+      const next = typeof forceValue === 'boolean' ? forceValue : !state.config.continuous;
+      if (next === state.config.continuous) {
+        updateContinuousPointer();
+        return;
+      }
+      inputs.continuous.checked = next;
+      syncConfig();
+    }
+
+    function cycleColorMode(direction = 1) {
+      const options = Array.from(inputs.mode.options).map((opt) => opt.value);
+      const currentIndex = options.indexOf(state.config.mode);
+      const nextIndex = (currentIndex + direction + options.length) % options.length;
+      inputs.mode.value = options[nextIndex];
+      syncConfig();
+    }
+
+    function handleCanvasFocus() {
+      if (state.pointer.isDown) return;
+      centerKeyboardTarget();
+    }
+
+    function handleCanvasBlur() {
+      if (state.pointer.source === 'keyboard' && !state.config.continuous) {
+        state.pointer.active = false;
+      }
+    }
+
+    function handleCanvasKeyDown(evt) {
+      const baseStep = evt.shiftKey ? state.keyboard.step * 0.5 : state.keyboard.step;
+      switch (evt.code) {
+        case 'ArrowUp':
+          evt.preventDefault();
+          moveKeyboardTarget(0, -baseStep);
+          break;
+        case 'ArrowDown':
+          evt.preventDefault();
+          moveKeyboardTarget(0, baseStep);
+          break;
+        case 'ArrowLeft':
+          evt.preventDefault();
+          moveKeyboardTarget(-baseStep, 0);
+          break;
+        case 'ArrowRight':
+          evt.preventDefault();
+          moveKeyboardTarget(baseStep, 0);
+          break;
+        case 'Enter':
+          evt.preventDefault();
+          spawnKeyboardExplosion();
+          break;
+        case 'Space':
+          evt.preventDefault();
+          syncKeyboardPointer();
+          toggleContinuousEmitter();
+          break;
+        case 'KeyM':
+          evt.preventDefault();
+          cycleColorMode();
+          break;
+        case 'KeyC':
+          evt.preventDefault();
+          state.particles.length = 0;
+          break;
+        default:
+          break;
+      }
+    }
+
+    // --- Physics ----------------------------------------------------------------
+    function spawnExplosion(x, y, amount = state.config.count, options = {}) {
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return 0;
+      const depth = options.depth || 0;
+      const mods = runState.modifiers;
+      const scaledAmount = options.ignoreModifiers ? amount : amount * mods.count;
+      const spawnCount = Math.min(800, Math.max(10, Math.floor(scaledAmount)));
+      if (spawnCount <= 0) return 0;
+      trimParticles(spawnCount);
+      const traitFactory = modeTraits[state.config.mode] || modeTraits.rainbow;
+      for (let i = 0; i < spawnCount; i++) {
+        const traits = traitFactory();
+        const angle = Math.random() * Math.PI * 2;
+        const speed = (state.config.power * mods.power * (0.55 + Math.random() * 0.75));
+        let vx = Math.cos(angle) * speed;
+        let vy = Math.sin(angle) * speed;
+        if (typeof traits.velocityAdjust === 'function') {
+          const adjusted = traits.velocityAdjust(vx, vy);
+          vx = adjusted.vx;
+          vy = adjusted.vy;
+        }
+        const size = (1.2 + Math.random() * 2.8) * mods.size;
+        const maxLife = (1.4 + Math.random() * 0.7) * traits.lifeMultiplier * mods.life;
+        const shadow = traits.shadow * mods.glow;
+        state.particles.push({
+          x,
+          y,
+          vx,
+          vy,
+          ax: 0,
+          ay: 0,
+          size,
+          baseSize: size,
+          life: maxLife,
+          maxLife,
+          color: traits.color(),
+          gravityBoost: traits.gravityBoost,
+          dragBoost: traits.dragBoost + mods.dragBoost,
+          shadow,
+        });
+      }
+      if (!options.silent) {
+        awardShards(spawnCount, options.bonusShards || 0);
+      }
+      const cascadeChance = mods.cascadeChance || 0;
+      if (cascadeChance > 0 && depth < 3 && Math.random() < cascadeChance) {
+        const offsetAngle = Math.random() * Math.PI * 2;
+        const offsetDistance = 40 + Math.random() * 60;
+        const nx = clamp(x + Math.cos(offsetAngle) * offsetDistance, 0, state.viewport.width);
+        const ny = clamp(y + Math.sin(offsetAngle) * offsetDistance, 0, state.viewport.height);
+        spawnExplosion(nx, ny, amount * 0.65, { depth: depth + 1 });
+      }
+      return spawnCount;
+    }
+
+    function trimParticles(incoming) {
+      const over = state.particles.length + incoming - state.maxParticles;
+      if (over > 0) {
+        state.particles.splice(0, over);
+      }
+    }
+
+    function updateParticles(dt) {
+      const gravity = state.config.gravity + runState.modifiers.gravityBoost;
+      const dragBase = state.config.drag;
+      for (let i = state.particles.length - 1; i >= 0; i--) {
+        const p = state.particles[i];
+        const drag = Math.max(0, Math.min(0.4, dragBase + p.dragBoost));
+        p.vx += p.ax * dt;
+        p.vy += (p.ay + gravity + p.gravityBoost) * dt;
+        const dragFactor = Math.max(0, 1 - drag * dt * 5);
+        p.vx *= dragFactor;
+        p.vy *= dragFactor;
+        p.x += p.vx * dt * 60;
+        p.y += p.vy * dt * 60;
+        p.life -= dt;
+        const shrink = p.baseSize * dt * 1.1;
+        p.size = Math.max(0, p.size - shrink);
+        if (p.life <= 0 || p.size <= 0.02) {
+          const last = state.particles.length - 1;
+          state.particles[i] = state.particles[last];
+          state.particles.pop();
+        }
+      }
+    }
+
+    // --- Rendering --------------------------------------------------------------
+    function resizeCanvas() {
+      state.dpr = window.devicePixelRatio || 1;
+      const { innerWidth, innerHeight } = window;
+      canvas.width = Math.round(innerWidth * state.dpr);
+      canvas.height = Math.round(innerHeight * state.dpr);
+      canvas.style.width = `${innerWidth}px`;
+      canvas.style.height = `${innerHeight}px`;
+      ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+      state.viewport.width = innerWidth;
+      state.viewport.height = innerHeight;
+      if (state.pointer.source === 'keyboard' && !state.pointer.isDown) {
+        state.keyboard.x = clamp(state.keyboard.x, 0, state.viewport.width);
+        state.keyboard.y = clamp(state.keyboard.y, 0, state.viewport.height);
+        syncKeyboardPointer();
+      }
+    }
+
+    function applyColorMode() {
+      const mode = state.config.mode;
+      let primary = '#0b0d1c';
+      let secondary = '#020208';
+      switch (mode) {
+        case 'fire':
+          primary = '#200403';
+          secondary = '#070203';
+          break;
+        case 'frost':
+          primary = '#031423';
+          secondary = '#010610';
+          break;
+        case 'neon':
+          primary = '#040119';
+          secondary = '#010009';
+          break;
+        case 'custom':
+          primary = state.config.customColor;
+          secondary = '#010105';
+          break;
+        default:
+          primary = '#0b0d1c';
+          secondary = '#020208';
+      }
+      state.background.primary = primary;
+      state.background.secondary = secondary;
+      document.body.style.background = `radial-gradient(circle at 20% 20%, ${primary}, ${secondary})`;
+    }
+
+    function renderBackground() {
+      ctx.globalCompositeOperation = 'source-over';
+      const fade = getTrailAlpha();
+      ctx.fillStyle = `rgba(2, 3, 9, ${fade})`;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function renderParticles() {
+      ctx.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < state.particles.length; i++) {
+        const p = state.particles[i];
+        const alpha = Math.max(0, Math.min(1, p.life / p.maxLife));
+        ctx.shadowBlur = p.shadow;
+        ctx.shadowColor = p.color;
+        ctx.fillStyle = applyAlpha(p.color, alpha);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.shadowBlur = 0;
+    }
+
+    function applyAlpha(color, alpha) {
+      if (color.startsWith('#')) {
+        const bigint = parseInt(color.slice(1), 16);
+        const r = (bigint >> 16) & 255;
+        const g = (bigint >> 8) & 255;
+        const b = bigint & 255;
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+      }
+      if (color.startsWith('hsl')) {
+        return color.replace('hsl', 'hsla').replace(')', `, ${alpha})`);
+      }
+      return color;
+    }
+
+    function render() {
+      renderBackground();
+      renderParticles();
+    }
+
+    // --- Loop ------------------------------------------------------------------
+    let lastTime = performance.now();
+    function tick(now) {
+      const dt = Math.min(0.033, (now - lastTime) / 1000);
+      lastTime = now;
+      updateParticles(dt);
+      if (state.config.continuous && state.pointer.active) {
+        spawnExplosion(state.pointer.x, state.pointer.y, state.config.count * 0.2);
+      }
+      render();
+      requestAnimationFrame(tick);
+    }
+
+    // --- Events ----------------------------------------------------------------
+    function toCanvasCoordinates(evt) {
+      const rect = canvas.getBoundingClientRect();
+      const x = clamp(evt.clientX - rect.left, 0, rect.width);
+      const y = clamp(evt.clientY - rect.top, 0, rect.height);
+      return { x, y };
+    }
+
+    window.addEventListener('keydown', (evt) => {
+      if (!runState.offering) return;
+      if (evt.key === 'Escape' && runState.offering.allowSkip) {
+        evt.preventDefault();
+        closeChoice();
+        return;
+      }
+      const index = Number.parseInt(evt.key, 10);
+      if (!Number.isNaN(index) && index > 0 && index <= runState.offering.options.length) {
+        evt.preventDefault();
+        resolveChoice(runState.offering.options[index - 1].id);
+      }
+    });
+
+    function handlePointerDown(evt) {
+      evt.preventDefault();
+      const point = toCanvasCoordinates(evt);
+      state.pointer.x = point.x;
+      state.pointer.y = point.y;
+      state.pointer.isDown = true;
+      state.pointer.source = 'pointer';
+      state.pointer.active = true;
+      try {
+        canvas.setPointerCapture(evt.pointerId);
+      } catch (err) {
+        // Some browsers may not support pointer capture; ignore safely.
+      }
+      spawnExplosion(point.x, point.y);
+      spawnRipple(evt.clientX, evt.clientY);
+    }
+
+    function handlePointerMove(evt) {
+      const point = toCanvasCoordinates(evt);
+      state.pointer.x = point.x;
+      state.pointer.y = point.y;
+      if (state.pointer.isDown || state.config.continuous) {
+        state.pointer.source = 'pointer';
+        state.pointer.active = true;
+      }
+    }
+
+    function handlePointerUp(evt) {
+      state.pointer.isDown = false;
+      if (state.config.continuous) {
+        state.pointer.source = 'pointer';
+        state.pointer.active = true;
+      } else if (state.pointer.source !== 'keyboard') {
+        state.pointer.active = false;
+      }
+      if (evt && typeof evt.pointerId === 'number') {
+        try {
+          canvas.releasePointerCapture(evt.pointerId);
+        } catch (err) {
+          /* ignore */
+        }
+      }
+    }
+
+    function spawnRipple(clientX, clientY) {
+      const ripple = document.createElement('span');
+      ripple.className = 'ripple';
+      ripple.style.left = `${clientX}px`;
+      ripple.style.top = `${clientY}px`;
+      document.body.appendChild(ripple);
+      ripple.addEventListener('animationend', () => ripple.remove());
+    }
+
+    canvas.addEventListener('pointerdown', handlePointerDown);
+    canvas.addEventListener('keydown', handleCanvasKeyDown);
+    canvas.addEventListener('focus', handleCanvasFocus);
+    canvas.addEventListener('blur', handleCanvasBlur);
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('pointercancel', handlePointerUp);
+
+    window.addEventListener('resize', resizeCanvas);
+
+    // --- Bootstrap -------------------------------------------------------------
+    resizeCanvas();
+    centerKeyboardTarget();
+    syncConfig();
+    startRun();
+    requestAnimationFrame(tick);
+  </script>
+</body>
+</html>
