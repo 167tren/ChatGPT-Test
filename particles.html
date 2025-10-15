@@ -229,12 +229,235 @@
       }
     }
 
+    .run-panel {
+      position: fixed;
+      left: 1.5rem;
+      bottom: 1.5rem;
+      width: min(320px, calc(100vw - 3rem));
+      display: grid;
+      gap: 0.85rem;
+      padding: 1.1rem 1.25rem 1.3rem;
+      border-radius: 18px;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      box-shadow: var(--panel-shadow);
+      backdrop-filter: blur(16px);
+      z-index: 9;
+    }
+
+    .run-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+
+    .run-header h2 {
+      margin: 0;
+      font-size: 0.95rem;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: rgba(233, 239, 255, 0.92);
+    }
+
+    .run-panel button {
+      appearance: none;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      padding: 0.35rem 0.85rem;
+      background: rgba(127, 156, 255, 0.18);
+      color: #f0f4ff;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s ease, border 0.2s ease, transform 0.2s ease;
+    }
+
+    .run-panel button:hover {
+      background: rgba(127, 156, 255, 0.28);
+    }
+
+    .run-panel button:focus-visible {
+      outline: 3px solid rgba(127, 156, 255, 0.55);
+      outline-offset: 2px;
+    }
+
+    .run-stats {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      font-size: 0.78rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: rgba(215, 225, 255, 0.78);
+    }
+
+    .run-stats strong {
+      display: block;
+      font-size: 1.1rem;
+      letter-spacing: 0.04em;
+      color: #f8faff;
+    }
+
+    .run-progress {
+      position: relative;
+      height: 7px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+    }
+
+    .run-progress-fill {
+      position: absolute;
+      inset: 0;
+      width: 0%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, rgba(127, 156, 255, 0.8), rgba(115, 231, 255, 0.8));
+      transition: width 0.35s cubic-bezier(0.3, 0, 0.2, 1);
+    }
+
+    .run-collection {
+      display: grid;
+      gap: 0.4rem;
+    }
+
+    .run-collection h3 {
+      margin: 0;
+      font-size: 0.7rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(180, 195, 240, 0.8);
+    }
+
+    .run-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    .run-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.3rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      letter-spacing: 0.04em;
+      background: rgba(127, 156, 255, 0.12);
+      border: 1px solid rgba(127, 156, 255, 0.18);
+      color: rgba(233, 239, 255, 0.92);
+      box-shadow: inset 0 0 12px rgba(115, 187, 255, 0.2);
+    }
+
+    .run-tag.curse {
+      background: rgba(255, 127, 127, 0.14);
+      border-color: rgba(255, 127, 127, 0.28);
+      box-shadow: inset 0 0 12px rgba(255, 120, 120, 0.25);
+      color: rgba(255, 200, 200, 0.92);
+    }
+
+    .choice-backdrop {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(4, 6, 14, 0.72);
+      backdrop-filter: blur(22px);
+      z-index: 20;
+    }
+
+    .choice-backdrop[hidden] {
+      display: none;
+    }
+
+    .choice-modal {
+      width: min(540px, calc(100vw - 3rem));
+      background: rgba(12, 16, 28, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 20px;
+      padding: 1.5rem;
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.55);
+      display: grid;
+      gap: 1.1rem;
+      text-align: left;
+    }
+
+    .choice-modal h3 {
+      margin: 0;
+      font-size: 1.1rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .choice-modal p {
+      margin: 0;
+      font-size: 0.85rem;
+      color: rgba(215, 225, 255, 0.82);
+      line-height: 1.5;
+    }
+
+    .choice-grid {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .choice-option {
+      display: grid;
+      gap: 0.35rem;
+      padding: 0.9rem 1rem;
+      border-radius: 14px;
+      border: 1px solid rgba(127, 156, 255, 0.2);
+      background: rgba(28, 36, 66, 0.55);
+      color: #f6f8ff;
+      text-align: left;
+      cursor: pointer;
+      transition: transform 0.2s ease, border 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .choice-option strong {
+      font-size: 0.95rem;
+      letter-spacing: 0.04em;
+    }
+
+    .choice-option span {
+      font-size: 0.82rem;
+      color: rgba(220, 230, 255, 0.82);
+      line-height: 1.45;
+    }
+
+    .choice-option:hover,
+    .choice-option:focus-visible {
+      border-color: rgba(127, 156, 255, 0.45);
+      box-shadow: 0 18px 35px rgba(36, 52, 105, 0.45);
+      transform: translateY(-2px);
+      outline: none;
+    }
+
+    .choice-actions {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .choice-actions button {
+      width: auto;
+      padding-inline: 1.2rem;
+    }
+
     @media (max-width: 720px) {
       .ui-panel {
         width: calc(100vw - 2rem);
         right: 1rem;
         left: 1rem;
         margin: 0 auto;
+      }
+
+      .run-panel {
+        width: calc(100vw - 2rem);
+        left: 1rem;
+        right: 1rem;
+        bottom: 1rem;
       }
     }
   </style>
@@ -301,6 +524,56 @@
       </div>
     </div>
   </section>
+  <section class="run-panel" id="runPanel" aria-live="polite">
+    <div class="run-header">
+      <h2>Echo Run</h2>
+      <button type="button" id="newRun">Start New Run</button>
+    </div>
+    <div class="run-stats">
+      <div>
+        <span>Cycle</span>
+        <strong id="runLevel">1</strong>
+      </div>
+      <div>
+        <span>Quanta</span>
+        <strong id="runShards">0 / 0</strong>
+      </div>
+    </div>
+    <div
+      class="run-progress"
+      role="progressbar"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow="0"
+      id="runProgressBar"
+    >
+      <div class="run-progress-fill" id="runProgressFill"></div>
+    </div>
+    <div class="run-collection" id="relicContainer">
+      <h3>Resonances</h3>
+      <div class="run-tags" id="runRelics" aria-live="polite"></div>
+    </div>
+    <div class="run-collection" id="curseContainer" hidden>
+      <h3>Entropy</h3>
+      <div class="run-tags" id="runCurses" aria-live="polite"></div>
+    </div>
+  </section>
+  <div class="choice-backdrop" id="choiceBackdrop" hidden>
+    <div
+      class="choice-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="choiceTitle"
+      aria-describedby="choiceSubtitle"
+    >
+      <h3 id="choiceTitle">Choose an Anomaly</h3>
+      <p id="choiceSubtitle">Select a mutation to shape this cycle.</p>
+      <div class="choice-grid" id="choiceGrid"></div>
+      <div class="choice-actions">
+        <button type="button" id="choiceSkip">Skip</button>
+      </div>
+    </div>
+  </div>
   <script>
     // --- State -----------------------------------------------------------------
     const canvas = document.getElementById('scene');
@@ -309,6 +582,23 @@
     const collapseBtn = document.getElementById('collapse');
     const trailReadout = document.getElementById('trailReadout');
     const customColorControl = document.getElementById('customColorControl');
+    const runUi = {
+      panel: document.getElementById('runPanel'),
+      level: document.getElementById('runLevel'),
+      shards: document.getElementById('runShards'),
+      progressBar: document.getElementById('runProgressBar'),
+      progressFill: document.getElementById('runProgressFill'),
+      relics: document.getElementById('runRelics'),
+      curses: document.getElementById('runCurses'),
+      relicContainer: document.getElementById('relicContainer'),
+      curseContainer: document.getElementById('curseContainer'),
+      newRun: document.getElementById('newRun'),
+      choiceBackdrop: document.getElementById('choiceBackdrop'),
+      choiceGrid: document.getElementById('choiceGrid'),
+      choiceTitle: document.getElementById('choiceTitle'),
+      choiceSubtitle: document.getElementById('choiceSubtitle'),
+      choiceSkip: document.getElementById('choiceSkip'),
+    };
 
     const inputs = {
       count: document.getElementById('count'),
@@ -340,6 +630,18 @@
       viewport: { width: window.innerWidth, height: window.innerHeight },
       maxParticles: 15000,
       background: { primary: '#0b0d1c', secondary: '#020208' },
+    };
+
+    const runState = {
+      active: false,
+      level: 1,
+      shards: 0,
+      goal: 220,
+      relics: [],
+      curses: [],
+      modifiers: createDefaultModifiers(),
+      offering: null,
+      history: new Set(),
     };
 
     const modeTraits = {
@@ -385,6 +687,339 @@
       }),
     };
 
+    const relicDeck = [
+      {
+        id: 'cascade',
+        name: 'Cascade Bloom',
+        description: 'Bursts spawn +30% more motes.',
+        apply: (run) => {
+          run.modifiers.count *= 1.3;
+        },
+      },
+      {
+        id: 'featherfall',
+        name: 'Featherfall Lattice',
+        description: 'Gravity eases by 0.22 and quanta gains +20%.',
+        apply: (run) => {
+          run.modifiers.gravityBoost -= 0.22;
+          run.modifiers.shardBonus *= 1.2;
+        },
+      },
+      {
+        id: 'aurora',
+        name: 'Aurora Core',
+        description: 'Glow +35% and particle size +12%.',
+        apply: (run) => {
+          run.modifiers.glow *= 1.35;
+          run.modifiers.size *= 1.12;
+        },
+      },
+      {
+        id: 'ionSpool',
+        name: 'Ion Spool',
+        description: 'Initial speed +25% but drag +0.007.',
+        apply: (run) => {
+          run.modifiers.power *= 1.25;
+          run.modifiers.dragBoost += 0.007;
+        },
+      },
+      {
+        id: 'echoBurst',
+        name: 'Echo Burst',
+        description: '20% chance to echo with 65% strength nearby.',
+        apply: (run) => {
+          run.modifiers.cascadeChance = Math.min(
+            0.6,
+            (run.modifiers.cascadeChance || 0) + 0.2,
+          );
+        },
+      },
+      {
+        id: 'chronoBloom',
+        name: 'Chrono Bloom',
+        description: 'Lifetime +40% and trails thicken slightly.',
+        apply: (run) => {
+          run.modifiers.life *= 1.4;
+          run.modifiers.trailBonus = clamp(run.modifiers.trailBonus + 0.04, -0.1, 0.3);
+        },
+      },
+      {
+        id: 'luminousTide',
+        name: 'Luminous Tide',
+        description: 'Particle size +30% but fade alpha -0.03.',
+        apply: (run) => {
+          run.modifiers.size *= 1.3;
+          run.modifiers.trailBonus = clamp(run.modifiers.trailBonus - 0.03, -0.2, 0.3);
+        },
+      },
+      {
+        id: 'quantumFountain',
+        name: 'Quantum Fountain',
+        description: 'Quanta rewards +60% for future cycles.',
+        apply: (run) => {
+          run.modifiers.shardBonus *= 1.6;
+        },
+      },
+      {
+        id: 'stormDrive',
+        name: 'Storm Drive',
+        description: 'Power +45% but gravity gains +0.18.',
+        apply: (run) => {
+          run.modifiers.power *= 1.45;
+          run.modifiers.gravityBoost += 0.18;
+        },
+      },
+    ];
+
+    const curseDeck = [
+      {
+        id: 'voidTax',
+        name: 'Void Tax',
+        description: 'Particle output -20%.',
+        apply: (run) => {
+          run.modifiers.count *= 0.8;
+        },
+      },
+      {
+        id: 'heavyAtmosphere',
+        name: 'Heavy Atmosphere',
+        description: 'Gravity +0.3 drags everything earthward.',
+        apply: (run) => {
+          run.modifiers.gravityBoost += 0.3;
+        },
+      },
+      {
+        id: 'timeRust',
+        name: 'Time Rust',
+        description: 'Lifespans crumble (-25%).',
+        apply: (run) => {
+          run.modifiers.life *= 0.75;
+        },
+      },
+      {
+        id: 'siphonedSpark',
+        name: 'Siphoned Spark',
+        description: 'Power -25% on every burst.',
+        apply: (run) => {
+          run.modifiers.power *= 0.75;
+        },
+      },
+      {
+        id: 'soddenAir',
+        name: 'Sodden Air',
+        description: 'Drag +0.03 and glow dims by 20%.',
+        apply: (run) => {
+          run.modifiers.dragBoost += 0.03;
+          run.modifiers.glow *= 0.8;
+        },
+      },
+      {
+        id: 'entropyVeil',
+        name: 'Entropy Veil',
+        description: 'Quanta trickles (-30%).',
+        apply: (run) => {
+          run.modifiers.shardBonus *= 0.7;
+        },
+      },
+    ];
+
+    function createDefaultModifiers() {
+      return {
+        count: 1,
+        power: 1,
+        life: 1,
+        size: 1,
+        glow: 1,
+        gravityBoost: 0,
+        dragBoost: 0,
+        trailBonus: 0,
+        shardBonus: 1,
+        cascadeChance: 0,
+      };
+    }
+
+    function startRun() {
+      closeChoice(true);
+      runState.active = true;
+      runState.level = 1;
+      runState.shards = 0;
+      runState.goal = 220;
+      runState.relics = [];
+      runState.curses = [];
+      runState.modifiers = createDefaultModifiers();
+      runState.offering = null;
+      runState.history = new Set();
+      state.particles.length = 0;
+      state.keyboard.step = 48;
+      updateRunPanel();
+      queueChoice('relic', {
+        title: 'Choose Your Opening Resonance',
+        subtitle: 'Select a boon to anchor this cycle. No skipping allowed.',
+        allowSkip: false,
+      });
+    }
+
+    function updateRunPanel() {
+      runUi.level.textContent = runState.level.toString();
+      runUi.shards.textContent = `${Math.floor(runState.shards)} / ${runState.goal}`;
+      const progress = clamp(runState.goal ? runState.shards / runState.goal : 0, 0, 1);
+      runUi.progressFill.style.width = `${(progress * 100).toFixed(1)}%`;
+      runUi.progressBar.setAttribute('aria-valuenow', Math.round(progress * 100));
+      runUi.progressBar.setAttribute(
+        'aria-valuetext',
+        `${Math.round(progress * 100)} percent to next cycle`,
+      );
+      renderRunTags(runUi.relics, runState.relics, '');
+      renderRunTags(runUi.curses, runState.curses, 'curse');
+      runUi.curseContainer.hidden = runState.curses.length === 0;
+      runUi.newRun.textContent = runState.active ? 'Restart Run' : 'Start New Run';
+      updateTrailReadout();
+    }
+
+    function renderRunTags(target, items, extraClass) {
+      target.innerHTML = '';
+      if (!items || !items.length) return;
+      for (const item of items) {
+        const tag = document.createElement('span');
+        tag.className = `run-tag${extraClass ? ` ${extraClass}` : ''}`;
+        tag.textContent = item.name;
+        tag.title = item.description;
+        tag.setAttribute('aria-label', `${item.name}: ${item.description}`);
+        target.appendChild(tag);
+      }
+    }
+
+    function awardShards(spawned, bonus = 0) {
+      if (!runState.active) return;
+      const gain = (spawned * 0.1 + bonus) * runState.modifiers.shardBonus;
+      runState.shards += gain;
+      let leveled = false;
+      while (runState.shards >= runState.goal) {
+        runState.shards -= runState.goal;
+        handleLevelUp();
+        leveled = true;
+      }
+      if (!leveled) {
+        updateRunPanel();
+      }
+    }
+
+    function handleLevelUp() {
+      runState.level += 1;
+      runState.goal = Math.round(runState.goal * 1.32 + 60);
+      updateRunPanel();
+      const isCurse = runState.level % 3 === 0;
+      queueChoice(isCurse ? 'curse' : 'relic', {
+        title: isCurse ? 'Endure an Entropy Surge' : 'Select a Fresh Resonance',
+        subtitle: isCurse
+          ? 'Entropy insists on a trade. Choose the curse you can weather.'
+          : 'Claim another boon to twist the bloom in your favor.',
+        allowSkip: !isCurse,
+      });
+    }
+
+    function queueChoice(type, details = {}) {
+      closeChoice(true);
+      const pool = type === 'curse' ? curseDeck : relicDeck;
+      let available = pool.filter((card) => {
+        if (type === 'curse') return true;
+        return !runState.relics.some((existing) => existing.id === card.id);
+      });
+      if (!available.length) {
+        available = pool.slice();
+      }
+      const count = Math.min(details.count ?? 3, available.length);
+      if (!count) return;
+      const options = sampleWithoutReplacement(available, count);
+      openChoice({
+        type,
+        options,
+        allowSkip: details.allowSkip ?? type !== 'curse',
+        title: details.title || (type === 'curse' ? 'Choose a Curse' : 'Choose an Anomaly'),
+        subtitle:
+          details.subtitle ||
+          (type === 'curse'
+            ? 'Entropy draws near. Select the least terrible outcome.'
+            : 'Every boon reshapes the bloom—choose wisely.'),
+      });
+    }
+
+    function openChoice(config) {
+      runState.offering = config;
+      runUi.choiceTitle.textContent = config.title;
+      runUi.choiceSubtitle.textContent = config.subtitle;
+      runUi.choiceGrid.innerHTML = '';
+      for (const option of config.options) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'choice-option';
+        button.dataset.id = option.id;
+        button.innerHTML = `<strong>${option.name}</strong><span>${option.description}</span>`;
+        button.addEventListener('click', () => resolveChoice(option.id));
+        runUi.choiceGrid.appendChild(button);
+      }
+      runUi.choiceSkip.hidden = !config.allowSkip;
+      runUi.choiceSkip.disabled = !config.allowSkip;
+      runUi.choiceBackdrop.hidden = false;
+      document.body.classList.add('choice-open');
+      requestAnimationFrame(() => {
+        const first = runUi.choiceGrid.querySelector('button');
+        if (first) first.focus();
+      });
+    }
+
+    function closeChoice(force = false) {
+      if (!runState.offering && !force) return;
+      runUi.choiceBackdrop.hidden = true;
+      document.body.classList.remove('choice-open');
+      runState.offering = null;
+      if (!force) {
+        updateRunPanel();
+      }
+    }
+
+    function resolveChoice(id) {
+      if (!runState.offering) return;
+      const card = runState.offering.options.find((opt) => opt.id === id);
+      if (!card) return;
+      applyCard(card, runState.offering.type);
+      runState.history.add(card.id);
+      closeChoice();
+    }
+
+    function applyCard(card, type) {
+      if (type === 'curse') {
+        runState.curses.push(card);
+      } else {
+        runState.relics.push(card);
+      }
+      card.apply(runState, state);
+    }
+
+    function sampleWithoutReplacement(list, count) {
+      const copy = list.slice();
+      const result = [];
+      for (let i = 0; i < count && copy.length; i++) {
+        const index = Math.floor(Math.random() * copy.length);
+        result.push(copy.splice(index, 1)[0]);
+      }
+      return result;
+    }
+
+    function updateTrailReadout() {
+      const base = state.config.trail;
+      const effective = getTrailAlpha();
+      if (Math.abs(effective - base) > 0.005) {
+        trailReadout.textContent = `Fade Alpha: ${base.toFixed(2)} → ${effective.toFixed(2)}`;
+      } else {
+        trailReadout.textContent = `Fade Alpha: ${base.toFixed(2)}`;
+      }
+    }
+
+    function getTrailAlpha() {
+      return clamp(state.config.trail + runState.modifiers.trailBonus, 0.02, 0.6);
+    }
+
     function clamp(value, min, max) {
       return Math.max(min, Math.min(max, value));
     }
@@ -399,7 +1034,7 @@
       state.config.mode = inputs.mode.value;
       state.config.customColor = inputs.customColor.value;
       state.config.continuous = inputs.continuous.checked;
-      trailReadout.textContent = `Fade Alpha: ${state.config.trail.toFixed(2)}`;
+      updateTrailReadout();
       customColorControl.hidden = state.config.mode !== 'custom';
       applyColorMode();
       updateContinuousPointer();
@@ -414,6 +1049,12 @@
     inputs.customColor.addEventListener('input', syncConfig);
     inputs.continuous.addEventListener('change', syncConfig);
     inputs.clear.addEventListener('click', () => state.particles.length = 0);
+    runUi.newRun.addEventListener('click', () => startRun());
+    runUi.choiceSkip.addEventListener('click', () => {
+      if (runState.offering && runState.offering.allowSkip) {
+        closeChoice();
+      }
+    });
 
     collapseBtn.addEventListener('click', () => {
       panel.classList.toggle('collapsed');
@@ -531,16 +1172,19 @@
     }
 
     // --- Physics ----------------------------------------------------------------
-    function spawnExplosion(x, y, amount = state.config.count) {
-      if (!Number.isFinite(x) || !Number.isFinite(y)) return;
-      const spawnCount = Math.min(800, Math.max(10, Math.floor(amount)));
-      if (spawnCount <= 0) return;
+    function spawnExplosion(x, y, amount = state.config.count, options = {}) {
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return 0;
+      const depth = options.depth || 0;
+      const mods = runState.modifiers;
+      const scaledAmount = options.ignoreModifiers ? amount : amount * mods.count;
+      const spawnCount = Math.min(800, Math.max(10, Math.floor(scaledAmount)));
+      if (spawnCount <= 0) return 0;
       trimParticles(spawnCount);
       const traitFactory = modeTraits[state.config.mode] || modeTraits.rainbow;
       for (let i = 0; i < spawnCount; i++) {
         const traits = traitFactory();
         const angle = Math.random() * Math.PI * 2;
-        const speed = (state.config.power * (0.55 + Math.random() * 0.75));
+        const speed = (state.config.power * mods.power * (0.55 + Math.random() * 0.75));
         let vx = Math.cos(angle) * speed;
         let vy = Math.sin(angle) * speed;
         if (typeof traits.velocityAdjust === 'function') {
@@ -548,8 +1192,9 @@
           vx = adjusted.vx;
           vy = adjusted.vy;
         }
-        const size = 1.2 + Math.random() * 2.8;
-        const maxLife = (1.4 + Math.random() * 0.7) * traits.lifeMultiplier;
+        const size = (1.2 + Math.random() * 2.8) * mods.size;
+        const maxLife = (1.4 + Math.random() * 0.7) * traits.lifeMultiplier * mods.life;
+        const shadow = traits.shadow * mods.glow;
         state.particles.push({
           x,
           y,
@@ -563,10 +1208,22 @@
           maxLife,
           color: traits.color(),
           gravityBoost: traits.gravityBoost,
-          dragBoost: traits.dragBoost,
-          shadow: traits.shadow,
+          dragBoost: traits.dragBoost + mods.dragBoost,
+          shadow,
         });
       }
+      if (!options.silent) {
+        awardShards(spawnCount, options.bonusShards || 0);
+      }
+      const cascadeChance = mods.cascadeChance || 0;
+      if (cascadeChance > 0 && depth < 3 && Math.random() < cascadeChance) {
+        const offsetAngle = Math.random() * Math.PI * 2;
+        const offsetDistance = 40 + Math.random() * 60;
+        const nx = clamp(x + Math.cos(offsetAngle) * offsetDistance, 0, state.viewport.width);
+        const ny = clamp(y + Math.sin(offsetAngle) * offsetDistance, 0, state.viewport.height);
+        spawnExplosion(nx, ny, amount * 0.65, { depth: depth + 1 });
+      }
+      return spawnCount;
     }
 
     function trimParticles(incoming) {
@@ -577,7 +1234,7 @@
     }
 
     function updateParticles(dt) {
-      const gravity = state.config.gravity;
+      const gravity = state.config.gravity + runState.modifiers.gravityBoost;
       const dragBase = state.config.drag;
       for (let i = state.particles.length - 1; i >= 0; i--) {
         const p = state.particles[i];
@@ -650,7 +1307,8 @@
 
     function renderBackground() {
       ctx.globalCompositeOperation = 'source-over';
-      ctx.fillStyle = `rgba(2, 3, 9, ${state.config.trail})`;
+      const fade = getTrailAlpha();
+      ctx.fillStyle = `rgba(2, 3, 9, ${fade})`;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
@@ -708,6 +1366,20 @@
       const y = clamp(evt.clientY - rect.top, 0, rect.height);
       return { x, y };
     }
+
+    window.addEventListener('keydown', (evt) => {
+      if (!runState.offering) return;
+      if (evt.key === 'Escape' && runState.offering.allowSkip) {
+        evt.preventDefault();
+        closeChoice();
+        return;
+      }
+      const index = Number.parseInt(evt.key, 10);
+      if (!Number.isNaN(index) && index > 0 && index <= runState.offering.options.length) {
+        evt.preventDefault();
+        resolveChoice(runState.offering.options[index - 1].id);
+      }
+    });
 
     function handlePointerDown(evt) {
       evt.preventDefault();
@@ -776,6 +1448,7 @@
     resizeCanvas();
     centerKeyboardTarget();
     syncConfig();
+    startRun();
     requestAnimationFrame(tick);
   </script>
 </body>
