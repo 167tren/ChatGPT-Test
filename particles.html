@@ -192,6 +192,22 @@
       text-align: right;
     }
 
+    .instructions {
+      font-size: 0.75rem;
+      line-height: 1.5;
+      color: rgba(225, 231, 255, 0.85);
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding-top: 0.7rem;
+    }
+
+    .instructions strong {
+      display: block;
+      margin-bottom: 0.25rem;
+      font-size: 0.78rem;
+      letter-spacing: 0.05em;
+      color: rgba(255, 255, 255, 0.92);
+    }
+
     .ripple {
       position: fixed;
       width: 160px;
@@ -224,7 +240,13 @@
   </style>
 </head>
 <body>
-  <canvas id="scene" role="presentation"></canvas>
+  <canvas
+    id="scene"
+    role="presentation"
+    tabindex="0"
+    aria-label="Interactive particle playground"
+    aria-describedby="playTips"
+  ></canvas>
   <section class="ui-panel" id="panel">
     <div class="panel-header">
       <span class="panel-title">Particle Bloom</span>
@@ -271,6 +293,12 @@
         <label for="continuous">Continuous Emitter</label>
       </div>
       <button type="button" id="clear">Clear Particles</button>
+      <div class="instructions" id="playTips">
+        <strong>Keyboard play:</strong>
+        Focus the canvas, use the arrow keys to move the target, press Enter to
+        burst, Space to toggle the continuous emitter, M to cycle color modes,
+        and C to clear the screen.
+      </div>
     </div>
   </section>
   <script>
@@ -296,7 +324,8 @@
 
     const state = {
       particles: [],
-      pointer: { x: 0, y: 0, active: false },
+      pointer: { x: 0, y: 0, active: false, isDown: false, source: 'keyboard' },
+      keyboard: { x: 0, y: 0, step: 48 },
       config: {
         count: Number(inputs.count.value),
         gravity: Number(inputs.gravity.value),
@@ -308,6 +337,7 @@
         continuous: inputs.continuous.checked,
       },
       dpr: window.devicePixelRatio || 1,
+      viewport: { width: window.innerWidth, height: window.innerHeight },
       maxParticles: 15000,
       background: { primary: '#0b0d1c', secondary: '#020208' },
     };
@@ -355,6 +385,10 @@
       }),
     };
 
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
     // --- UI --------------------------------------------------------------------
     function syncConfig() {
       state.config.count = Number(inputs.count.value);
@@ -368,6 +402,7 @@
       trailReadout.textContent = `Fade Alpha: ${state.config.trail.toFixed(2)}`;
       customColorControl.hidden = state.config.mode !== 'custom';
       applyColorMode();
+      updateContinuousPointer();
     }
 
     inputs.count.addEventListener('input', syncConfig);
@@ -384,6 +419,116 @@
       panel.classList.toggle('collapsed');
       collapseBtn.textContent = panel.classList.contains('collapsed') ? 'Expand' : 'Collapse';
     });
+
+    function updateContinuousPointer() {
+      if (state.config.continuous) {
+        if (state.pointer.source === 'keyboard' && !state.pointer.isDown) {
+          state.pointer.x = state.keyboard.x;
+          state.pointer.y = state.keyboard.y;
+        }
+        state.pointer.active = true;
+      } else if (!state.pointer.isDown) {
+        state.pointer.active = false;
+      }
+    }
+
+    function syncKeyboardPointer() {
+      state.pointer.source = 'keyboard';
+      state.pointer.x = state.keyboard.x;
+      state.pointer.y = state.keyboard.y;
+      updateContinuousPointer();
+    }
+
+    function centerKeyboardTarget() {
+      state.keyboard.x = state.viewport.width / 2;
+      state.keyboard.y = state.viewport.height / 2;
+      if (!state.pointer.isDown) {
+        syncKeyboardPointer();
+      }
+    }
+
+    function moveKeyboardTarget(dx, dy) {
+      state.keyboard.x = clamp(state.keyboard.x + dx, 0, state.viewport.width);
+      state.keyboard.y = clamp(state.keyboard.y + dy, 0, state.viewport.height);
+      syncKeyboardPointer();
+    }
+
+    function spawnKeyboardExplosion() {
+      syncKeyboardPointer();
+      spawnExplosion(state.keyboard.x, state.keyboard.y);
+      const rect = canvas.getBoundingClientRect();
+      spawnRipple(rect.left + state.keyboard.x, rect.top + state.keyboard.y);
+    }
+
+    function toggleContinuousEmitter(forceValue) {
+      const next = typeof forceValue === 'boolean' ? forceValue : !state.config.continuous;
+      if (next === state.config.continuous) {
+        updateContinuousPointer();
+        return;
+      }
+      inputs.continuous.checked = next;
+      syncConfig();
+    }
+
+    function cycleColorMode(direction = 1) {
+      const options = Array.from(inputs.mode.options).map((opt) => opt.value);
+      const currentIndex = options.indexOf(state.config.mode);
+      const nextIndex = (currentIndex + direction + options.length) % options.length;
+      inputs.mode.value = options[nextIndex];
+      syncConfig();
+    }
+
+    function handleCanvasFocus() {
+      if (state.pointer.isDown) return;
+      centerKeyboardTarget();
+    }
+
+    function handleCanvasBlur() {
+      if (state.pointer.source === 'keyboard' && !state.config.continuous) {
+        state.pointer.active = false;
+      }
+    }
+
+    function handleCanvasKeyDown(evt) {
+      const baseStep = evt.shiftKey ? state.keyboard.step * 0.5 : state.keyboard.step;
+      switch (evt.code) {
+        case 'ArrowUp':
+          evt.preventDefault();
+          moveKeyboardTarget(0, -baseStep);
+          break;
+        case 'ArrowDown':
+          evt.preventDefault();
+          moveKeyboardTarget(0, baseStep);
+          break;
+        case 'ArrowLeft':
+          evt.preventDefault();
+          moveKeyboardTarget(-baseStep, 0);
+          break;
+        case 'ArrowRight':
+          evt.preventDefault();
+          moveKeyboardTarget(baseStep, 0);
+          break;
+        case 'Enter':
+          evt.preventDefault();
+          spawnKeyboardExplosion();
+          break;
+        case 'Space':
+          evt.preventDefault();
+          syncKeyboardPointer();
+          toggleContinuousEmitter();
+          break;
+        case 'KeyM':
+          evt.preventDefault();
+          cycleColorMode();
+          break;
+        case 'KeyC':
+          evt.preventDefault();
+          state.particles.length = 0;
+          break;
+        default:
+          break;
+      }
+    }
 
     // --- Physics ----------------------------------------------------------------
     function spawnExplosion(x, y, amount = state.config.count) {
@@ -464,6 +609,13 @@
       canvas.style.width = `${innerWidth}px`;
       canvas.style.height = `${innerHeight}px`;
       ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+      state.viewport.width = innerWidth;
+      state.viewport.height = innerHeight;
+      if (state.pointer.source === 'keyboard' && !state.pointer.isDown) {
+        state.keyboard.x = clamp(state.keyboard.x, 0, state.viewport.width);
+        state.keyboard.y = clamp(state.keyboard.y, 0, state.viewport.height);
+        syncKeyboardPointer();
+      }
     }
 
     function applyColorMode() {
@@ -552,8 +704,8 @@
     // --- Events ----------------------------------------------------------------
     function toCanvasCoordinates(evt) {
       const rect = canvas.getBoundingClientRect();
-      const x = (evt.clientX - rect.left);
-      const y = (evt.clientY - rect.top);
+      const x = clamp(evt.clientX - rect.left, 0, rect.width);
+      const y = clamp(evt.clientY - rect.top, 0, rect.height);
       return { x, y };
     }
 
@@ -562,6 +714,8 @@
       const point = toCanvasCoordinates(evt);
       state.pointer.x = point.x;
       state.pointer.y = point.y;
+      state.pointer.isDown = true;
+      state.pointer.source = 'pointer';
       state.pointer.active = true;
       try {
         canvas.setPointerCapture(evt.pointerId);
@@ -573,14 +727,30 @@
     }
 
     function handlePointerMove(evt) {
-      if (!state.pointer.active) return;
       const point = toCanvasCoordinates(evt);
       state.pointer.x = point.x;
       state.pointer.y = point.y;
+      if (state.pointer.isDown || state.config.continuous) {
+        state.pointer.source = 'pointer';
+        state.pointer.active = true;
+      }
     }
 
-    function handlePointerUp() {
-      state.pointer.active = false;
+    function handlePointerUp(evt) {
+      state.pointer.isDown = false;
+      if (state.config.continuous) {
+        state.pointer.source = 'pointer';
+        state.pointer.active = true;
+      } else if (state.pointer.source !== 'keyboard') {
+        state.pointer.active = false;
+      }
+      if (evt && typeof evt.pointerId === 'number') {
+        try {
+          canvas.releasePointerCapture(evt.pointerId);
+        } catch (err) {
+          /* ignore */
+        }
+      }
     }
 
     function spawnRipple(clientX, clientY) {
@@ -593,6 +763,9 @@
     }
 
     canvas.addEventListener('pointerdown', handlePointerDown);
+    canvas.addEventListener('keydown', handleCanvasKeyDown);
+    canvas.addEventListener('focus', handleCanvasFocus);
+    canvas.addEventListener('blur', handleCanvasBlur);
     window.addEventListener('pointermove', handlePointerMove);
     window.addEventListener('pointerup', handlePointerUp);
     window.addEventListener('pointercancel', handlePointerUp);
@@ -601,6 +774,7 @@
 
     // --- Bootstrap -------------------------------------------------------------
     resizeCanvas();
+    centerKeyboardTarget();
     syncConfig();
     requestAnimationFrame(tick);
   </script>
