@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Particle Bloom Simulator</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: "Inter", "Segoe UI", sans-serif;
+      --panel-bg: rgba(15, 18, 30, 0.85);
+      --panel-border: rgba(255, 255, 255, 0.08);
+      --panel-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+      --accent: #7f9cff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at 20% 20%, #0b0d1c, #020208);
+      overflow: hidden;
+      color: #f8faff;
+    }
+
+    canvas {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      touch-action: none;
+    }
+
+    .ui-panel {
+      position: fixed;
+      top: 1.5rem;
+      right: 1.5rem;
+      width: min(320px, calc(100vw - 3rem));
+      backdrop-filter: blur(16px);
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      box-shadow: var(--panel-shadow);
+      border-radius: 18px;
+      padding: 1.25rem 1.35rem 1.4rem;
+      display: grid;
+      gap: 1rem;
+      transition: transform 0.35s cubic-bezier(0.3, 0, 0.2, 1), opacity 0.35s ease;
+      z-index: 10;
+    }
+
+    .ui-panel.collapsed {
+      transform: translateY(-10px) scale(0.96);
+      opacity: 0.35;
+    }
+
+    .ui-panel.collapsed .controls {
+      display: none;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+
+    .panel-title {
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+
+    .collapse-btn {
+      appearance: none;
+      border: 1px solid transparent;
+      border-radius: 999px;
+      padding: 0.3rem 0.65rem;
+      background: rgba(127, 156, 255, 0.18);
+      color: #f0f4ff;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 600;
+      transition: background 0.2s ease, transform 0.2s ease, border 0.2s ease;
+    }
+
+    .collapse-btn:hover {
+      background: rgba(127, 156, 255, 0.28);
+    }
+
+    .collapse-btn:focus-visible {
+      outline: 3px solid rgba(127, 156, 255, 0.55);
+      outline-offset: 2px;
+    }
+
+    .controls {
+      display: grid;
+      gap: 0.9rem;
+    }
+
+    .control {
+      display: grid;
+      gap: 0.4rem;
+    }
+
+    label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: rgba(233, 239, 255, 0.9);
+    }
+
+    input[type="range"],
+    select,
+    input[type="color"],
+    button {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(18, 23, 40, 0.7);
+      color: #f0f4ff;
+      padding: 0.45rem 0.7rem;
+      font-size: 0.9rem;
+      transition: border 0.2s ease, background 0.2s ease, transform 0.15s ease;
+    }
+
+    input[type="range"] {
+      padding: 0;
+      height: 4px;
+      accent-color: var(--accent);
+    }
+
+    input[type="color"] {
+      height: 36px;
+      cursor: pointer;
+      padding: 0;
+      border-radius: 12px;
+    }
+
+    select {
+      cursor: pointer;
+    }
+
+    button {
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    button:hover,
+    select:hover {
+      border-color: rgba(127, 156, 255, 0.5);
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    button:focus-visible,
+    select:focus-visible,
+    input:focus-visible {
+      outline: 3px solid rgba(127, 156, 255, 0.55);
+      outline-offset: 2px;
+    }
+
+    .inline-control {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .inline-control label {
+      margin: 0;
+    }
+
+    .toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .toggle input[type="checkbox"] {
+      width: auto;
+      accent-color: var(--accent);
+    }
+
+    .trail-readout {
+      font-size: 0.75rem;
+      opacity: 0.75;
+      text-align: right;
+    }
+
+    .ripple {
+      position: fixed;
+      width: 160px;
+      height: 160px;
+      margin: -80px 0 0 -80px;
+      border-radius: 50%;
+      pointer-events: none;
+      background: radial-gradient(circle, rgba(143, 169, 255, 0.35) 0%, rgba(143, 169, 255, 0) 70%);
+      transform: scale(0.3);
+      opacity: 0.4;
+      animation: ripple 0.6s ease-out forwards;
+      z-index: 5;
+    }
+
+    @keyframes ripple {
+      to {
+        transform: scale(1);
+        opacity: 0;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .ui-panel {
+        width: calc(100vw - 2rem);
+        right: 1rem;
+        left: 1rem;
+        margin: 0 auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="scene" role="presentation"></canvas>
+  <section class="ui-panel" id="panel">
+    <div class="panel-header">
+      <span class="panel-title">Particle Bloom</span>
+      <button type="button" class="collapse-btn" id="collapse">Collapse</button>
+    </div>
+    <div class="controls" id="controls">
+      <div class="control">
+        <label for="count">Particles Per Burst</label>
+        <input id="count" type="range" min="10" max="800" value="300" />
+      </div>
+      <div class="control">
+        <label for="gravity">Gravity</label>
+        <input id="gravity" type="range" min="0" max="2" step="0.01" value="0.4" />
+      </div>
+      <div class="control">
+        <label for="drag">Drag</label>
+        <input id="drag" type="range" min="0" max="0.1" step="0.005" value="0.02" />
+      </div>
+      <div class="control">
+        <label for="power">Explosion Power</label>
+        <input id="power" type="range" min="1" max="12" step="0.1" value="6" />
+      </div>
+      <div class="control">
+        <label for="trail">Trail Intensity</label>
+        <input id="trail" type="range" min="0" max="1" step="0.01" value="0.15" />
+        <div class="trail-readout" id="trailReadout">Fade Alpha: 0.15</div>
+      </div>
+      <div class="control">
+        <label for="mode">Color Mode</label>
+        <select id="mode">
+          <option value="rainbow">Rainbow</option>
+          <option value="fire">Fire</option>
+          <option value="frost">Frost</option>
+          <option value="neon">Neon</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+      <div class="control" id="customColorControl" hidden>
+        <label for="customColor">Custom Color</label>
+        <input id="customColor" type="color" value="#ff5ef0" />
+      </div>
+      <div class="control toggle">
+        <input id="continuous" type="checkbox" />
+        <label for="continuous">Continuous Emitter</label>
+      </div>
+      <button type="button" id="clear">Clear Particles</button>
+    </div>
+  </section>
+  <script>
+    // --- State -----------------------------------------------------------------
+    const canvas = document.getElementById('scene');
+    const ctx = canvas.getContext('2d', { alpha: false });
+    const panel = document.getElementById('panel');
+    const collapseBtn = document.getElementById('collapse');
+    const trailReadout = document.getElementById('trailReadout');
+    const customColorControl = document.getElementById('customColorControl');
+
+    const inputs = {
+      count: document.getElementById('count'),
+      gravity: document.getElementById('gravity'),
+      drag: document.getElementById('drag'),
+      power: document.getElementById('power'),
+      trail: document.getElementById('trail'),
+      mode: document.getElementById('mode'),
+      customColor: document.getElementById('customColor'),
+      continuous: document.getElementById('continuous'),
+      clear: document.getElementById('clear'),
+    };
+
+    const state = {
+      particles: [],
+      pointer: { x: 0, y: 0, active: false },
+      config: {
+        count: Number(inputs.count.value),
+        gravity: Number(inputs.gravity.value),
+        drag: Number(inputs.drag.value),
+        power: Number(inputs.power.value),
+        trail: Number(inputs.trail.value),
+        mode: inputs.mode.value,
+        customColor: inputs.customColor.value,
+        continuous: inputs.continuous.checked,
+      },
+      dpr: window.devicePixelRatio || 1,
+      maxParticles: 15000,
+      background: { primary: '#0b0d1c', secondary: '#020208' },
+    };
+
+    const modeTraits = {
+      rainbow: () => ({
+        lifeMultiplier: 1,
+        dragBoost: 0,
+        gravityBoost: 0,
+        shadow: 25,
+        color: () => `hsl(${Math.random() * 360}, 85%, 62%)`,
+      }),
+      fire: () => ({
+        lifeMultiplier: 0.9,
+        dragBoost: 0.01,
+        gravityBoost: -0.18,
+        shadow: 30,
+        color: () => `hsl(${10 + Math.random() * 25}, 90%, ${55 + Math.random() * 10}%)`,
+        velocityAdjust: (vx, vy) => ({ vx, vy: vy - 1.2 }),
+      }),
+      frost: () => ({
+        lifeMultiplier: 1.35,
+        dragBoost: 0.05,
+        gravityBoost: -0.05,
+        shadow: 20,
+        color: () => `hsl(${180 + Math.random() * 40}, 70%, ${65 + Math.random() * 10}%)`,
+      }),
+      neon: () => ({
+        lifeMultiplier: 1.1,
+        dragBoost: 0.02,
+        gravityBoost: 0,
+        shadow: 40,
+        color: () => {
+          const palettes = [140, 200, 260, 320];
+          const hue = palettes[Math.floor(Math.random() * palettes.length)] + Math.random() * 20;
+          return `hsl(${hue}, 95%, 60%)`;
+        },
+      }),
+      custom: () => ({
+        lifeMultiplier: 1.1,
+        dragBoost: 0.015,
+        gravityBoost: 0,
+        shadow: 28,
+        color: () => state.config.customColor,
+      }),
+    };
+
+    // --- UI --------------------------------------------------------------------
+    function syncConfig() {
+      state.config.count = Number(inputs.count.value);
+      state.config.gravity = Number(inputs.gravity.value);
+      state.config.drag = Number(inputs.drag.value);
+      state.config.power = Number(inputs.power.value);
+      state.config.trail = Number(inputs.trail.value);
+      state.config.mode = inputs.mode.value;
+      state.config.customColor = inputs.customColor.value;
+      state.config.continuous = inputs.continuous.checked;
+      trailReadout.textContent = `Fade Alpha: ${state.config.trail.toFixed(2)}`;
+      customColorControl.hidden = state.config.mode !== 'custom';
+      applyColorMode();
+    }
+
+    inputs.count.addEventListener('input', syncConfig);
+    inputs.gravity.addEventListener('input', syncConfig);
+    inputs.drag.addEventListener('input', syncConfig);
+    inputs.power.addEventListener('input', syncConfig);
+    inputs.trail.addEventListener('input', syncConfig);
+    inputs.mode.addEventListener('change', syncConfig);
+    inputs.customColor.addEventListener('input', syncConfig);
+    inputs.continuous.addEventListener('change', syncConfig);
+    inputs.clear.addEventListener('click', () => state.particles.length = 0);
+
+    collapseBtn.addEventListener('click', () => {
+      panel.classList.toggle('collapsed');
+      collapseBtn.textContent = panel.classList.contains('collapsed') ? 'Expand' : 'Collapse';
+    });
+
+    // --- Physics ----------------------------------------------------------------
+    function spawnExplosion(x, y, amount = state.config.count) {
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+      const spawnCount = Math.min(800, Math.max(10, Math.floor(amount)));
+      if (spawnCount <= 0) return;
+      trimParticles(spawnCount);
+      const traitFactory = modeTraits[state.config.mode] || modeTraits.rainbow;
+      for (let i = 0; i < spawnCount; i++) {
+        const traits = traitFactory();
+        const angle = Math.random() * Math.PI * 2;
+        const speed = (state.config.power * (0.55 + Math.random() * 0.75));
+        let vx = Math.cos(angle) * speed;
+        let vy = Math.sin(angle) * speed;
+        if (typeof traits.velocityAdjust === 'function') {
+          const adjusted = traits.velocityAdjust(vx, vy);
+          vx = adjusted.vx;
+          vy = adjusted.vy;
+        }
+        const size = 1.2 + Math.random() * 2.8;
+        const maxLife = (1.4 + Math.random() * 0.7) * traits.lifeMultiplier;
+        state.particles.push({
+          x,
+          y,
+          vx,
+          vy,
+          ax: 0,
+          ay: 0,
+          size,
+          baseSize: size,
+          life: maxLife,
+          maxLife,
+          color: traits.color(),
+          gravityBoost: traits.gravityBoost,
+          dragBoost: traits.dragBoost,
+          shadow: traits.shadow,
+        });
+      }
+    }
+
+    function trimParticles(incoming) {
+      const over = state.particles.length + incoming - state.maxParticles;
+      if (over > 0) {
+        state.particles.splice(0, over);
+      }
+    }
+
+    function updateParticles(dt) {
+      const gravity = state.config.gravity;
+      const dragBase = state.config.drag;
+      for (let i = state.particles.length - 1; i >= 0; i--) {
+        const p = state.particles[i];
+        const drag = Math.max(0, Math.min(0.4, dragBase + p.dragBoost));
+        p.vx += p.ax * dt;
+        p.vy += (p.ay + gravity + p.gravityBoost) * dt;
+        const dragFactor = Math.max(0, 1 - drag * dt * 5);
+        p.vx *= dragFactor;
+        p.vy *= dragFactor;
+        p.x += p.vx * dt * 60;
+        p.y += p.vy * dt * 60;
+        p.life -= dt;
+        const shrink = p.baseSize * dt * 1.1;
+        p.size = Math.max(0, p.size - shrink);
+        if (p.life <= 0 || p.size <= 0.02) {
+          const last = state.particles.length - 1;
+          state.particles[i] = state.particles[last];
+          state.particles.pop();
+        }
+      }
+    }
+
+    // --- Rendering --------------------------------------------------------------
+    function resizeCanvas() {
+      state.dpr = window.devicePixelRatio || 1;
+      const { innerWidth, innerHeight } = window;
+      canvas.width = Math.round(innerWidth * state.dpr);
+      canvas.height = Math.round(innerHeight * state.dpr);
+      canvas.style.width = `${innerWidth}px`;
+      canvas.style.height = `${innerHeight}px`;
+      ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+    }
+
+    function applyColorMode() {
+      const mode = state.config.mode;
+      let primary = '#0b0d1c';
+      let secondary = '#020208';
+      switch (mode) {
+        case 'fire':
+          primary = '#200403';
+          secondary = '#070203';
+          break;
+        case 'frost':
+          primary = '#031423';
+          secondary = '#010610';
+          break;
+        case 'neon':
+          primary = '#040119';
+          secondary = '#010009';
+          break;
+        case 'custom':
+          primary = state.config.customColor;
+          secondary = '#010105';
+          break;
+        default:
+          primary = '#0b0d1c';
+          secondary = '#020208';
+      }
+      state.background.primary = primary;
+      state.background.secondary = secondary;
+      document.body.style.background = `radial-gradient(circle at 20% 20%, ${primary}, ${secondary})`;
+    }
+
+    function renderBackground() {
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle = `rgba(2, 3, 9, ${state.config.trail})`;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function renderParticles() {
+      ctx.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < state.particles.length; i++) {
+        const p = state.particles[i];
+        const alpha = Math.max(0, Math.min(1, p.life / p.maxLife));
+        ctx.shadowBlur = p.shadow;
+        ctx.shadowColor = p.color;
+        ctx.fillStyle = applyAlpha(p.color, alpha);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.shadowBlur = 0;
+    }
+
+    function applyAlpha(color, alpha) {
+      if (color.startsWith('#')) {
+        const bigint = parseInt(color.slice(1), 16);
+        const r = (bigint >> 16) & 255;
+        const g = (bigint >> 8) & 255;
+        const b = bigint & 255;
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+      }
+      if (color.startsWith('hsl')) {
+        return color.replace('hsl', 'hsla').replace(')', `, ${alpha})`);
+      }
+      return color;
+    }
+
+    function render() {
+      renderBackground();
+      renderParticles();
+    }
+
+    // --- Loop ------------------------------------------------------------------
+    let lastTime = performance.now();
+    function tick(now) {
+      const dt = Math.min(0.033, (now - lastTime) / 1000);
+      lastTime = now;
+      updateParticles(dt);
+      if (state.config.continuous && state.pointer.active) {
+        spawnExplosion(state.pointer.x, state.pointer.y, state.config.count * 0.2);
+      }
+      render();
+      requestAnimationFrame(tick);
+    }
+
+    // --- Events ----------------------------------------------------------------
+    function toCanvasCoordinates(evt) {
+      const rect = canvas.getBoundingClientRect();
+      const x = (evt.clientX - rect.left);
+      const y = (evt.clientY - rect.top);
+      return { x, y };
+    }
+
+    function handlePointerDown(evt) {
+      evt.preventDefault();
+      const point = toCanvasCoordinates(evt);
+      state.pointer.x = point.x;
+      state.pointer.y = point.y;
+      state.pointer.active = true;
+      try {
+        canvas.setPointerCapture(evt.pointerId);
+      } catch (err) {
+        // Some browsers may not support pointer capture; ignore safely.
+      }
+      spawnExplosion(point.x, point.y);
+      spawnRipple(evt.clientX, evt.clientY);
+    }
+
+    function handlePointerMove(evt) {
+      if (!state.pointer.active) return;
+      const point = toCanvasCoordinates(evt);
+      state.pointer.x = point.x;
+      state.pointer.y = point.y;
+    }
+
+    function handlePointerUp() {
+      state.pointer.active = false;
+    }
+
+    function spawnRipple(clientX, clientY) {
+      const ripple = document.createElement('span');
+      ripple.className = 'ripple';
+      ripple.style.left = `${clientX}px`;
+      ripple.style.top = `${clientY}px`;
+      document.body.appendChild(ripple);
+      ripple.addEventListener('animationend', () => ripple.remove());
+    }
+
+    canvas.addEventListener('pointerdown', handlePointerDown);
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('pointercancel', handlePointerUp);
+
+    window.addEventListener('resize', resizeCanvas);
+
+    // --- Bootstrap -------------------------------------------------------------
+    resizeCanvas();
+    syncConfig();
+    requestAnimationFrame(tick);
+  </script>
+</body>
+</html>
